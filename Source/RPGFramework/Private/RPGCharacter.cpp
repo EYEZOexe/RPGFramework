@@ -27,6 +27,13 @@ bool ARPGCharacter::ActivateAbilitiesWithTag(FGameplayTagContainer AbilityTags, 
 	return AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags, AllowRemoteActivation);
 }
 
+bool ARPGCharacter::ActivateMeleeAbility(bool AllowRemoteActivation)
+{
+	if (!AbilitySystemComponent || !MeleeAbilitySpecHandle.IsValid()) return false;
+
+	return AbilitySystemComponent->TryActivateAbility(MeleeAbilitySpecHandle);
+}
+
 // Called when the game starts or when spawned
 void ARPGCharacter::BeginPlay()
 {
@@ -44,6 +51,13 @@ void ARPGCharacter::SetTestAbilities()
 			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(TestAbility, GetCharacterLevel(), INDEX_NONE, this));
 		}
 	}
+}
+
+void ARPGCharacter::SetMeleeAbility()
+{
+	if (!AbilitySystemComponent) return;
+
+	MeleeAbilitySpecHandle = AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(MeleeAbility, GetCharacterLevel(), INDEX_NONE, this));
 }
 
 // Called every frame
@@ -69,6 +83,7 @@ void ARPGCharacter::PossessedBy(AController* NewController)
 	if (EnableTestAbilities) SetTestAbilities();
 	
 	ApplyDefaultAttributeEffects();
+	SetMeleeAbility();
 }
 
 // Implement the IAbilitySystemInterface
@@ -76,6 +91,8 @@ UAbilitySystemComponent* ARPGCharacter::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
 }
+
+
 
 void ARPGCharacter::HandleHealthChange(float DeltaValue, AActor* Causer)
 {
@@ -113,15 +130,19 @@ void ARPGCharacter::ApplyDefaultAttributeEffects()
 {
 	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
 	EffectContext.AddSourceObject(this);
-	FGameplayEffectSpecHandle NewHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributeEffects, CharacterLevel, EffectContext);
-	if (NewHandle.IsValid())
+	for (TSubclassOf<UGameplayEffect>& DefaultEffect : DefaultAttributeEffects)
 	{
-		FActiveGameplayEffectHandle ActiveEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*NewHandle.Data.Get(), AbilitySystemComponent);
+		FGameplayEffectSpecHandle NewHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultEffect, CharacterLevel, EffectContext);
+		if (NewHandle.IsValid())
+		{
+			FActiveGameplayEffectHandle ActiveHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*NewHandle.Data.Get(), AbilitySystemComponent);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to create default attribute effect spec for %s"), *GetName());
+		}
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Failed to create default attribute effect spec for %s"), *GetName());
-	}
+	
 }
 
 void ARPGCharacter::RemoveDefaultAttributeEffects()

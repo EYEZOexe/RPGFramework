@@ -53,8 +53,9 @@ void URPGAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectMod
 
 	if (Data.EvaluatedData.Attribute == GetStaminaAttribute())
 	{
+		bool StaminaOverflow = GetStamina() > GetMaxStamina() ? FMath::IsNearlyEqual(GetStamina() - DeltaValue, GetMaxStamina()) : false;
 		SetStamina(FMath::Clamp(GetStamina(), 0.0f, GetMaxStamina()));
-		if (RPGCharacter)
+		if (RPGCharacter && !StaminaOverflow)
 		{
 			RPGCharacter->OnStaminaChanged(DeltaValue, Data.EffectSpec.GetContext().GetInstigator());
 		}
