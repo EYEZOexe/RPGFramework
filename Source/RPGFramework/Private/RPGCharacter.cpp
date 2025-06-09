@@ -34,6 +34,50 @@ bool ARPGCharacter::ActivateMeleeAbility(bool AllowRemoteActivation)
 	return AbilitySystemComponent->TryActivateAbility(MeleeAbilitySpecHandle);
 }
 
+void ARPGCharacter::GetActiveAbilitiesWithTag(FGameplayTagContainer AbilityTags,
+	TArray<UGameplayAbility*>& ActiveAbilities, bool MatchExactTag)
+{
+	if (!AbilitySystemComponent) return;
+	TArray<FGameplayAbilitySpec*> MatchingAbilities;
+	AbilitySystemComponent->GetActivatableGameplayAbilitySpecsByAllMatchingTags(AbilityTags, MatchingAbilities, MatchExactTag);
+	for (FGameplayAbilitySpec* Spec : MatchingAbilities)
+	{
+		TArray<UGameplayAbility*> AbilityInstances = Spec->GetAbilityInstances();
+		for (UGameplayAbility* ActiveAbility : AbilityInstances)
+		{
+			ActiveAbilities.Add(ActiveAbility);
+		}
+	}
+}
+
+void ARPGCharacter::ApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect)
+{
+	if (!AbilitySystemComponent || !GameplayEffect) return;
+	
+	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddSourceObject(this);
+	
+	FGameplayEffectSpecHandle NewHandle = AbilitySystemComponent->MakeOutgoingSpec(GameplayEffect, CharacterLevel, EffectContext);
+	if (NewHandle.IsValid())
+	{
+		FActiveGameplayEffectHandle ActiveHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*NewHandle.Data.Get(), AbilitySystemComponent);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to create default attribute effect spec for %s"), *GetName());
+	}
+}
+
+bool ARPGCharacter::CanApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect)
+{
+	if (!AbilitySystemComponent || !GameplayEffect) return false;
+
+	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddSourceObject(this);
+	
+	return AbilitySystemComponent->CanApplyAttributeModifiers(GameplayEffect->GetDefaultObject<UGameplayEffect>(), CharacterLevel, EffectContext);
+}
+
 // Called when the game starts or when spawned
 void ARPGCharacter::BeginPlay()
 {

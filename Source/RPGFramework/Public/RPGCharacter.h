@@ -70,6 +70,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG Abilities|Melee")
 	bool ActivateMeleeAbility(bool AllowRemoteActivation = true);
 
+	UFUNCTION(BlueprintCallable, Category = "RPG Abilities")
+	virtual void GetActiveAbilitiesWithTag(FGameplayTagContainer AbilityTags, TArray<UGameplayAbility*>& ActiveAbilities, bool MatchExactTag);
+
+	UFUNCTION(BlueprintCallable, Category = "RPG Abilities")
+	virtual void ApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect);
+
+	UFUNCTION(BlueprintCallable, Category = "RPG Abilities")
+	virtual bool CanApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect);
+	
 	/*
 	 * Called when the character runs out of health.
 	 */
